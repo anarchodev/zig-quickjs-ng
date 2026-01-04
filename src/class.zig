@@ -21,16 +21,10 @@ pub const Id = enum(u32) {
 
     /// Creates a new unique class ID.
     ///
-    /// If `pclass_id.*` is `invalid` (0), a new class ID is allocated.
-    /// If `pclass_id.*` is non-zero, it is returned unchanged (for sharing
-    /// class IDs across multiple runtimes).
-    ///
     /// C: `JS_NewClassID`
-    pub fn new(rt: *Runtime, pclass_id: *Id) Id {
-        var raw: u32 = @intFromEnum(pclass_id.*);
-        const result = c.JS_NewClassID(rt.cval(), &raw);
-        pclass_id.* = @enumFromInt(raw);
-        return @enumFromInt(result);
+    pub fn new(rt: *Runtime) Id {
+        var raw: u32 = 0;
+        return @enumFromInt(c.JS_NewClassID(rt.cval(), &raw));
     }
 };
 
@@ -145,36 +139,19 @@ test "Id.new allocates unique IDs" {
     const rt: *Runtime = try .init();
     defer rt.deinit();
 
-    var id1: Id = .invalid;
-    var id2: Id = .invalid;
+    const id1: Id = .new(rt);
+    const id2: Id = .new(rt);
 
-    const result1 = Id.new(rt, &id1);
-    const result2 = Id.new(rt, &id2);
-
-    try testing.expect(result1 != .invalid);
-    try testing.expect(result2 != .invalid);
-    try testing.expect(result1 != result2);
-    try testing.expectEqual(result1, id1);
-    try testing.expectEqual(result2, id2);
-}
-
-test "Id.new with pre-assigned ID returns same ID" {
-    const rt: *Runtime = try .init();
-    defer rt.deinit();
-
-    var id: Id = .invalid;
-    const first = Id.new(rt, &id);
-
-    const second = Id.new(rt, &id);
-    try testing.expectEqual(first, second);
+    try testing.expect(id1 != .invalid);
+    try testing.expect(id2 != .invalid);
+    try testing.expect(id1 != id2);
 }
 
 test "Runtime.newClass registers a class" {
     const rt: *Runtime = try .init();
     defer rt.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     try testing.expect(!rt.isRegisteredClass(class_id));
 
@@ -191,8 +168,7 @@ test "Runtime.getClassName returns class name" {
     const ctx: *Context = try .init(rt);
     defer ctx.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     try testing.expect(!rt.isRegisteredClass(class_id));
 
@@ -214,8 +190,7 @@ test "Value.initObjectClass creates class instance" {
     const ctx: *Context = try .init(rt);
     defer ctx.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     const def = Def{ .class_name = "InstanceTest" };
     try rt.newClass(class_id, &def);
@@ -224,7 +199,7 @@ test "Value.initObjectClass creates class instance" {
     defer proto.deinit(ctx);
     ctx.setClassProto(class_id, proto.dup(ctx));
 
-    const obj = Value.initObjectClass(ctx, @intFromEnum(class_id));
+    const obj = Value.initObjectClass(ctx, class_id);
     defer obj.deinit(ctx);
 
     try testing.expect(obj.isObject());
@@ -238,8 +213,7 @@ test "Value opaque data round-trip" {
     const ctx: *Context = try .init(rt);
     defer ctx.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     const def = Def{ .class_name = "OpaqueTest" };
     try rt.newClass(class_id, &def);
@@ -248,7 +222,7 @@ test "Value opaque data round-trip" {
     defer proto.deinit(ctx);
     ctx.setClassProto(class_id, proto.dup(ctx));
 
-    const obj = Value.initObjectClass(ctx, @intFromEnum(class_id));
+    const obj = Value.initObjectClass(ctx, class_id);
     defer obj.deinit(ctx);
 
     const TestData = struct { value: i32 };
@@ -272,8 +246,7 @@ test "Value.getAnyOpaque retrieves opaque with class ID" {
     const ctx: *Context = try .init(rt);
     defer ctx.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     const def = Def{ .class_name = "AnyOpaqueTest" };
     try rt.newClass(class_id, &def);
@@ -282,7 +255,7 @@ test "Value.getAnyOpaque retrieves opaque with class ID" {
     defer proto.deinit(ctx);
     ctx.setClassProto(class_id, proto.dup(ctx));
 
-    const obj = Value.initObjectClass(ctx, @intFromEnum(class_id));
+    const obj = Value.initObjectClass(ctx, class_id);
     defer obj.deinit(ctx);
 
     const TestData = struct { value: i32 };
@@ -302,8 +275,7 @@ test "Value.getClassId returns class ID for class objects" {
     const ctx: *Context = try .init(rt);
     defer ctx.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     const def = Def{ .class_name = "ClassIdTest" };
     try rt.newClass(class_id, &def);
@@ -312,7 +284,7 @@ test "Value.getClassId returns class ID for class objects" {
     defer proto.deinit(ctx);
     ctx.setClassProto(class_id, proto.dup(ctx));
 
-    const obj = Value.initObjectClass(ctx, @intFromEnum(class_id));
+    const obj = Value.initObjectClass(ctx, class_id);
     defer obj.deinit(ctx);
 
     try testing.expectEqual(class_id, obj.getClassId());
@@ -330,8 +302,7 @@ test "Context.setClassProto and getClassProto" {
     const ctx: *Context = try .init(rt);
     defer ctx.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     const def = Def{ .class_name = "ProtoTest" };
     try rt.newClass(class_id, &def);
@@ -380,8 +351,7 @@ test "Class with finalizer" {
     const rt: *Runtime = try .init();
     defer rt.deinit();
 
-    var class_id: Id = .invalid;
-    _ = Id.new(rt, &class_id);
+    const class_id: Id = .new(rt);
 
     const finalizer = struct {
         fn finalize(_: *Runtime, _: Value) callconv(.c) void {
@@ -402,7 +372,7 @@ test "Class with finalizer" {
         const proto = Value.initObject(ctx);
         ctx.setClassProto(class_id, proto);
 
-        const obj = Value.initObjectClass(ctx, @intFromEnum(class_id));
+        const obj = Value.initObjectClass(ctx, class_id);
         obj.deinit(ctx);
     }
 

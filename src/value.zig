@@ -239,8 +239,8 @@ pub const Value = extern struct {
     /// Context.setClassProto) and can store opaque data via setOpaque.
     ///
     /// C: `JS_NewObjectClass`
-    pub fn initObjectClass(ctx: *Context, class_id: u32) Value {
-        return fromCVal(c.JS_NewObjectClass(ctx.cval(), class_id));
+    pub fn initObjectClass(ctx: *Context, class_id: class.Id) Value {
+        return fromCVal(c.JS_NewObjectClass(ctx.cval(), @intFromEnum(class_id)));
     }
 
     /// Creates an empty JavaScript array.
@@ -3305,7 +3305,7 @@ test "initObjectClass" {
     defer ctx.deinit();
 
     // Class ID 1 is JS_CLASS_OBJECT - creates a plain object
-    const obj = Value.initObjectClass(ctx, 1);
+    const obj = Value.initObjectClass(ctx, @enumFromInt(1));
     defer obj.deinit(ctx);
 
     // Verify it's an object
