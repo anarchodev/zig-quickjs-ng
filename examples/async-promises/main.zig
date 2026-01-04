@@ -99,9 +99,12 @@ pub fn main() !void {
     defer global.deinit(ctx);
     const output1 = global.getPropertyStr(ctx, "result");
     defer output1.deinit(ctx);
-    const str1 = output1.toCString(ctx) orelse "undefined";
-    defer ctx.freeCString(str1);
-    std.debug.print("   {s}\n\n", .{str1});
+    if (output1.toCString(ctx)) |str1| {
+        defer ctx.freeCString(str1);
+        std.debug.print("   {s}\n\n", .{str1});
+    } else {
+        std.debug.print("   undefined\n\n", .{});
+    }
 
     std.debug.print("2. Fetching non-existent user (ID 99)...\n", .{});
     const result2 = ctx.eval(
@@ -117,9 +120,12 @@ pub fn main() !void {
 
     const output2 = global.getPropertyStr(ctx, "result2");
     defer output2.deinit(ctx);
-    const str2 = output2.toCString(ctx) orelse "undefined";
-    defer ctx.freeCString(str2);
-    std.debug.print("   {s}\n\n", .{str2});
+    if (output2.toCString(ctx)) |str2| {
+        defer ctx.freeCString(str2);
+        std.debug.print("   {s}\n\n", .{str2});
+    } else {
+        std.debug.print("   undefined\n\n", .{});
+    }
 
     std.debug.print("3. Using async/await syntax...\n", .{});
     const result3 = ctx.eval(
@@ -139,9 +145,12 @@ pub fn main() !void {
 
     const output3 = global.getPropertyStr(ctx, "result3");
     defer output3.deinit(ctx);
-    const str3 = output3.toCString(ctx) orelse "undefined";
-    defer ctx.freeCString(str3);
-    std.debug.print("   {s}\n\n", .{str3});
+    if (output3.toCString(ctx)) |str3| {
+        defer ctx.freeCString(str3);
+        std.debug.print("   {s}\n\n", .{str3});
+    } else {
+        std.debug.print("   undefined\n\n", .{});
+    }
 
     std.debug.print("4. Promise.all for parallel fetching...\n", .{});
     const result4 = ctx.eval(
@@ -160,7 +169,11 @@ pub fn main() !void {
 
     const output4 = global.getPropertyStr(ctx, "result4");
     defer output4.deinit(ctx);
-    const str4 = output4.toCString(ctx) orelse "undefined";
-    defer ctx.freeCString(str4);
-    std.debug.print("   {s}\n", .{str4});
+    if (output4.toCString(ctx)) |str4| {
+        defer ctx.freeCString(str4);
+        std.debug.print("   {s}\n", .{str4});
+    } else {
+        std.debug.print("   undefined\n", .{});
+    }
 }
+

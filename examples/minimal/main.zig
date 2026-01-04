@@ -23,9 +23,12 @@ pub fn main() !void {
     if (result.isException()) {
         const exc = ctx.getException();
         defer exc.deinit(ctx);
-        const msg = exc.toCString(ctx) orelse "unknown error";
-        defer ctx.freeCString(msg);
-        std.debug.print("Error: {s}\n", .{msg});
+        if (exc.toCString(ctx)) |msg| {
+            defer ctx.freeCString(msg);
+            std.debug.print("Error: {s}\n", .{msg});
+        } else {
+            std.debug.print("Error: unknown error\n", .{});
+        }
         return error.JavaScriptException;
     }
 

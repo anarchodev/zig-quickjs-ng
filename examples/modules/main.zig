@@ -43,9 +43,18 @@ const Logger = struct {
         if (!m.setExport(ctx, "error", .initCFunction(ctx, @"error", "error", 1))) return false;
 
         const levels: quickjs.Value = .initObject(ctx);
-        levels.setPropertyStr(ctx, "INFO", .initInt32(0)) catch return false;
-        levels.setPropertyStr(ctx, "WARN", .initInt32(1)) catch return false;
-        levels.setPropertyStr(ctx, "ERROR", .initInt32(2)) catch return false;
+        levels.setPropertyStr(ctx, "INFO", .initInt32(0)) catch {
+            levels.deinit(ctx);
+            return false;
+        };
+        levels.setPropertyStr(ctx, "WARN", .initInt32(1)) catch {
+            levels.deinit(ctx);
+            return false;
+        };
+        levels.setPropertyStr(ctx, "ERROR", .initInt32(2)) catch {
+            levels.deinit(ctx);
+            return false;
+        };
         if (!m.setExport(ctx, "LOG_LEVELS", levels)) return false;
 
         return true;
@@ -75,9 +84,12 @@ const Logger = struct {
         std.debug.print("{s} ", .{prefix});
         for (args) |arg| {
             const val: quickjs.Value = .fromCVal(arg);
-            const str = val.toCString(ctx) orelse "<unconvertible>";
-            defer ctx.freeCString(str);
-            std.debug.print("{s} ", .{str});
+            if (val.toCString(ctx)) |str| {
+                defer ctx.freeCString(str);
+                std.debug.print("{s} ", .{str});
+            } else {
+                std.debug.print("<unconvertible> ", .{});
+            }
         }
         std.debug.print("\n", .{});
 
@@ -107,9 +119,12 @@ pub fn main() !void {
     if (result.isException()) {
         const exc = ctx.getException();
         defer exc.deinit(ctx);
-        const msg = exc.toCString(ctx) orelse "unknown error";
-        defer ctx.freeCString(msg);
-        std.debug.print("Error: {s}\n", .{msg});
+        if (exc.toCString(ctx)) |msg| {
+            defer ctx.freeCString(msg);
+            std.debug.print("Error: {s}\n", .{msg});
+        } else {
+            std.debug.print("Error: unknown error\n", .{});
+        }
         return error.JavaScriptException;
     }
 

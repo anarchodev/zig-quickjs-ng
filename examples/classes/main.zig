@@ -78,6 +78,7 @@ const Counter = struct {
         const obj: quickjs.Value = .initObjectClass(c, class_id);
         if (!obj.setOpaque(counter)) {
             counter.deinit();
+            obj.deinit(c);
             return c.throwTypeError("Failed to set opaque data");
         }
 
@@ -149,9 +150,12 @@ pub fn main() !void {
     if (result.isException()) {
         const exc = ctx.getException();
         defer exc.deinit(ctx);
-        const msg = exc.toCString(ctx) orelse "unknown error";
-        defer ctx.freeCString(msg);
-        std.debug.print("Error: {s}\n", .{msg});
+        if (exc.toCString(ctx)) |msg| {
+            defer ctx.freeCString(msg);
+            std.debug.print("Error: {s}\n", .{msg});
+        } else {
+            std.debug.print("Error: unknown error\n", .{});
+        }
         return error.JavaScriptException;
     }
 
