@@ -114,7 +114,7 @@ pub const Context = opaque {
     /// longer needed. Check `Value.isException` to detect errors.
     ///
     /// C: `JS_Eval`
-    pub fn eval(self: *Context, input: []const u8, filename: [:0]const u8, flags: EvalFlags) Value {
+    pub fn eval(self: *Context, input: [:0]const u8, filename: [:0]const u8, flags: EvalFlags) Value {
         return Value.fromCVal(c.JS_Eval(
             self.cval(),
             input.ptr,
